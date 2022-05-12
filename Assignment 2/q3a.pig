@@ -1,0 +1,10 @@
+movielens = LOAD 'movielens_large_updated.csv' USING PigStorage(',') AS (userId:int, movieId:int);
+movielens_grpd = GROUP movielens BY movieId;
+movielens_grpd_dbl = FOREACH movielens_grpd GENERATE group, movielens.userId AS userId1, movielens.userId AS userId2;
+cowatch = FOREACH movielens_grpd_dbl GENERATE FLATTEN(userId1) as userId1, FLATTEN(userId2) as userId2;
+cowatch_filtered = FILTER cowatch BY userId1 < userId2;
+cowatch_grouped = GROUP cowatch_filtered BY (userId1, userId2);
+cowatch_pairs = FOREACH cowatch_grouped GENERATE group, COUNT(cowatch_filtered.userId1) AS group_count;
+cowatch_ordered = ORDER cowatch_pairs BY group_count DESC;
+Top10 = LIMIT cowatch_ordered 10;
+STORE Top10 INTO '/user/s1155160788/output' USING PigStorage(',');
